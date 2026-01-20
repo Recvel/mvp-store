@@ -71,16 +71,23 @@
             font-size: 18px;
         }
 
-        .city-select {
+        /* Контейнер для фильтров (Город + Район) */
+        .filters-container {
+            display: flex;
+            gap: 10px; /* Расстояние между списками */
+            margin-bottom: 20px;
+        }
+
+        .select-style {
             width: 100%;
             padding: 12px;
             background: var(--card-bg);
             border: 1px solid rgba(0,0,0,0.1);
             border-radius: var(--border-radius);
             color: var(--text-color);
-            margin-bottom: 20px;
-            font-size: 16px;
+            font-size: 14px;
             outline: none;
+            -webkit-appearance: none; /* Убираем стандартные стрелки */
         }
 
         .grid {
@@ -180,12 +187,17 @@
         </div>
     </div>
 
-    <select class="city-select" id="citySelect">
-        <option value="msk">Москва</option>
-        <option value="spb">СПБ</option>
-        <option value="ekb">Екатеринбург</option>
-        <option value="kzn">Казань</option>
-    </select>
+    <div class="filters-container">
+        <select class="select-style" id="citySelect" onchange="updateDistricts()">
+            <option value="msk">Москва</option>
+            <option value="spb">СПБ</option>
+            <option value="ekb">Екб</option>
+            <option value="kzn">Казань</option>
+        </select>
+        
+        <select class="select-style" id="districtSelect">
+            </select>
+    </div>
 
     <div class="grid" id="productsGrid">
         </div>
@@ -202,17 +214,46 @@
         tg.expand();
 
         // ---------------------------------------------------------
-        // ВАЖНО: ЗАМЕНИ 000000000 НА СВОЙ TELEGRAM ID (число)
-        // Узнать ID можно у бота @userinfobot
+        // ВАЖНО: Твой Telegram ID
         const ADMIN_ID = 899650873; 
         // ---------------------------------------------------------
 
+        // --- БАЗА ДАННЫХ РАЙОНОВ ---
+        const districtsData = {
+            'msk': ['Центр', 'Север', 'Юг', 'Бутово', 'Сити'],
+            'spb': ['Невский', 'Девяткино', 'Центр', 'Васька'],
+            'ekb': ['Уралмаш', 'Центр', 'ВИЗ'],
+            'kzn': ['Вахитовский', 'Кремль', 'Татарстан']
+        };
+
+        // Товары
         let products = [
             { id: 1, title: "Травка чили киви", desc: "чуток пол грама", price: 2.5, tag: "ECO" },
             { id: 2, title: "Мет кристальный голубой", desc: "1 Мистер Вайт", price: 5.0, tag: "CHEM" },
             { id: 3, title: "Кокоджамба", desc: "Объем фуры", price: 1.2, tag: "BIG" },
             { id: 4, title: "Подписка на патреоне", desc: "Халявные граммы еверидэй", price: 0.5, tag: "SUB" }
         ];
+
+        // Функция обновления списка районов
+        function updateDistricts() {
+            const citySelect = document.getElementById('citySelect');
+            const districtSelect = document.getElementById('districtSelect');
+            const selectedCity = citySelect.value;
+            
+            // Очищаем текущие районы
+            districtSelect.innerHTML = '';
+
+            // Получаем список районов для выбранного города (или пустой массив)
+            const districts = districtsData[selectedCity] || ['Центр'];
+
+            // Создаем новые пункты меню
+            districts.forEach(district => {
+                const option = document.createElement('option');
+                option.value = district;
+                option.text = district;
+                districtSelect.appendChild(option);
+            });
+        }
 
         function renderProducts() {
             const container = document.getElementById('productsGrid');
@@ -250,43 +291,41 @@
         }
 
         function buyItem(title, price) {
+            // Собираем данные: Город и Район
+            const city = document.getElementById('citySelect').options[document.getElementById('citySelect').selectedIndex].text;
+            const district = document.getElementById('districtSelect').value;
+
             tg.showPopup({
                 title: 'Оплата Web3',
-                message: `Вы хотите купить ${title} за ${price} TON?`,
+                message: `Купить ${title}?\n📍 ${city}, ${district}\n💰 ${price} TON`,
                 buttons: [
-                    {id: 'pay', type: 'default', text: 'Оплатить через Wallet'},
+                    {id: 'pay', type: 'default', text: 'Оплатить'},
                     {id: 'cancel', type: 'destructive', text: 'Отмена'}
                 ]
             }, function(btnId) {
                 if (btnId === 'pay') {
+                    // Отправляем все данные боту
                     tg.sendData(JSON.stringify({
                         type: 'purchase',
                         item: title,
                         amount: price,
-                        city: document.getElementById('citySelect').value
+                        city: city,       // Отправляем название города
+                        district: district // Отправляем район
                     }));
                 }
             });
         }
 
-        // --- НОВАЯ ЗАЩИТА АДМИНКИ ---
         function toggleAdmin() {
             const panel = document.getElementById('adminPanel');
-            
-            // Если панель открыта - просто закрываем
             if (panel.style.display === 'block') {
                 panel.style.display = 'none';
                 return;
             }
-
-            // Получаем данные пользователя из Телеграма
             const user = tg.initDataUnsafe.user;
-
-            // Проверяем ID
             if (user && user.id === ADMIN_ID) {
-                panel.style.display = 'block'; // Открываем, если это ТЫ
+                panel.style.display = 'block';
             } else {
-                // Ругаемся, если это не ты
                 tg.showAlert("Доступ запрещен! Вы не администратор."); 
             }
         }
@@ -294,24 +333,18 @@
         function addProduct() {
             const title = document.getElementById('newTitle').value;
             const price = document.getElementById('newPrice').value;
-            
             if(title && price) {
-                products.push({
-                    id: Date.now(),
-                    title: title,
-                    desc: "Новый товар",
-                    price: price,
-                    tag: "NEW"
-                });
+                products.push({ id: Date.now(), title: title, desc: "Новый товар", price: price, tag: "NEW" });
                 renderProducts();
                 tg.showAlert("Товар добавлен!");
-                // Очистить поля
                 document.getElementById('newTitle').value = '';
                 document.getElementById('newPrice').value = '';
             }
         }
 
+        // Запуск при старте
         renderProducts();
+        updateDistricts(); // Сразу заполнить районы для первого города
         if (tg.colorScheme === 'dark') toggleTheme();
 
     </script>
