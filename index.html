@@ -9,7 +9,6 @@
     
     <style>
         :root {
-            /* Переменные для светлой темы */
             --bg-color: #f5f5f7;
             --card-bg: #ffffff;
             --text-color: #1d1d1f;
@@ -18,7 +17,6 @@
             --border-radius: 16px;
         }
 
-        /* Темная тема (включается через класс .dark) */
         body.dark {
             --bg-color: #121212;
             --card-bg: #1e1e1e;
@@ -37,7 +35,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Шапка: Лого и Настройки */
         .header {
             display: flex;
             justify-content: space-between;
@@ -74,7 +71,6 @@
             font-size: 18px;
         }
 
-        /* Выбор города */
         .city-select {
             width: 100%;
             padding: 12px;
@@ -87,7 +83,6 @@
             outline: none;
         }
 
-        /* Сетка товаров */
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -146,7 +141,6 @@
             cursor: pointer;
         }
 
-        /* Админ панель (скрыта по умолчанию) */
         #adminPanel {
             display: none;
             margin-top: 30px;
@@ -168,7 +162,7 @@
             margin-bottom: 10px;
             border-radius: 8px;
             border: 1px solid #ccc;
-            box-sizing: border-box; /* Важно для padding */
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -189,8 +183,8 @@
     <select class="city-select" id="citySelect">
         <option value="msk">Москва</option>
         <option value="spb">СПБ</option>
-        <option value="ekb">КАРАГАНДА</option>
-        <option value="kzn">ЖОПААААААА</option>
+        <option value="ekb">Екатеринбург</option>
+        <option value="kzn">Казань</option>
     </select>
 
     <div class="grid" id="productsGrid">
@@ -205,21 +199,24 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Растянуть на весь экран
+        tg.expand();
 
-        // База данных товаров (имитация)
+        // ---------------------------------------------------------
+        // ВАЖНО: ЗАМЕНИ 000000000 НА СВОЙ TELEGRAM ID (число)
+        // Узнать ID можно у бота @userinfobot
+        const ADMIN_ID = 899650873; 
+        // ---------------------------------------------------------
+
         let products = [
-            { id: 1, title: "Травка чили киви", desc: "чуток пол грама", price: 2.5, tag: "" },
-            { id: 2, title: "Мет кристальный голубой", desc: "1 Мистер Вайт", price: 5.0, tag: "" },
-            { id: 3, title: "Кокоджамба", desc: "Объем фуры", price: 1.2, tag: "" },
-            { id: 4, title: "Подписка на патреоне", desc: "Халявные граммы еверидэй", price: 0.5, tag: "" }
+            { id: 1, title: "Травка чили киви", desc: "чуток пол грама", price: 2.5, tag: "ECO" },
+            { id: 2, title: "Мет кристальный голубой", desc: "1 Мистер Вайт", price: 5.0, tag: "CHEM" },
+            { id: 3, title: "Кокоджамба", desc: "Объем фуры", price: 1.2, tag: "BIG" },
+            { id: 4, title: "Подписка на патреоне", desc: "Халявные граммы еверидэй", price: 0.5, tag: "SUB" }
         ];
 
-        // 1. Функция отрисовки товаров
         function renderProducts() {
             const container = document.getElementById('productsGrid');
-            container.innerHTML = ''; // Очистить перед отрисовкой
-
+            container.innerHTML = '';
             products.forEach(product => {
                 const div = document.createElement('div');
                 div.className = 'card';
@@ -240,22 +237,19 @@
             });
         }
 
-        // 2. Логика смены темы
         function toggleTheme() {
             document.body.classList.toggle('dark');
             const icon = document.getElementById('themeIcon');
             if (document.body.classList.contains('dark')) {
                 icon.className = 'fa-solid fa-sun';
-                tg.setHeaderColor('#121212'); // Красим шапку телеграма
+                tg.setHeaderColor('#121212');
             } else {
                 icon.className = 'fa-solid fa-moon';
                 tg.setHeaderColor('#f5f5f7');
             }
         }
 
-        // 3. Логика покупки (отправка данных боту)
         function buyItem(title, price) {
-            // В реальности тут вызывается TON Connect
             tg.showPopup({
                 title: 'Оплата Web3',
                 message: `Вы хотите купить ${title} за ${price} TON?`,
@@ -265,7 +259,6 @@
                 ]
             }, function(btnId) {
                 if (btnId === 'pay') {
-                    // Отправляем данные боту, что оплата прошла
                     tg.sendData(JSON.stringify({
                         type: 'purchase',
                         item: title,
@@ -276,10 +269,26 @@
             });
         }
 
-        // 4. Админ панель (простая версия)
+        // --- НОВАЯ ЗАЩИТА АДМИНКИ ---
         function toggleAdmin() {
             const panel = document.getElementById('adminPanel');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            
+            // Если панель открыта - просто закрываем
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+                return;
+            }
+
+            // Получаем данные пользователя из Телеграма
+            const user = tg.initDataUnsafe.user;
+
+            // Проверяем ID
+            if (user && user.id === ADMIN_ID) {
+                panel.style.display = 'block'; // Открываем, если это ТЫ
+            } else {
+                // Ругаемся, если это не ты
+                tg.showAlert("Доступ запрещен! Вы не администратор."); 
+            }
         }
 
         function addProduct() {
@@ -294,18 +303,16 @@
                     price: price,
                     tag: "NEW"
                 });
-                renderProducts(); // Перерисовать магазин
+                renderProducts();
                 tg.showAlert("Товар добавлен!");
+                // Очистить поля
+                document.getElementById('newTitle').value = '';
+                document.getElementById('newPrice').value = '';
             }
         }
 
-        // Запуск при старте
         renderProducts();
-        
-        // Авто-определение темы Телеграма
-        if (tg.colorScheme === 'dark') {
-            toggleTheme();
-        }
+        if (tg.colorScheme === 'dark') toggleTheme();
 
     </script>
 </body>
