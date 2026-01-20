@@ -71,10 +71,9 @@
             font-size: 18px;
         }
 
-        /* Контейнер для фильтров (Город + Район) */
         .filters-container {
             display: flex;
-            gap: 10px; /* Расстояние между списками */
+            gap: 10px;
             margin-bottom: 20px;
         }
 
@@ -87,7 +86,7 @@
             color: var(--text-color);
             font-size: 14px;
             outline: none;
-            -webkit-appearance: none; /* Убираем стандартные стрелки */
+            -webkit-appearance: none;
         }
 
         .grid {
@@ -196,11 +195,11 @@
         </select>
         
         <select class="select-style" id="districtSelect">
-            </select>
+        </select>
     </div>
 
     <div class="grid" id="productsGrid">
-        </div>
+    </div>
 
     <div id="adminPanel">
         <div class="admin-title">Панель администратора</div>
@@ -218,7 +217,6 @@
         const ADMIN_ID = 899650873; 
         // ---------------------------------------------------------
 
-        // --- БАЗА ДАННЫХ РАЙОНОВ ---
         const districtsData = {
             'msk': ['Центр', 'Север', 'Юг', 'Бутово', 'Сити'],
             'spb': ['Невский', 'Девяткино', 'Центр', 'Васька'],
@@ -226,7 +224,6 @@
             'kzn': ['Вахитовский', 'Кремль', 'Татарстан']
         };
 
-        // Товары
         let products = [
             { id: 1, title: "Травка чили киви", desc: "чуток пол грама", price: 2.5, tag: "ECO" },
             { id: 2, title: "Мет кристальный голубой", desc: "1 Мистер Вайт", price: 5.0, tag: "CHEM" },
@@ -234,19 +231,12 @@
             { id: 4, title: "Подписка на патреоне", desc: "Халявные граммы еверидэй", price: 0.5, tag: "SUB" }
         ];
 
-        // Функция обновления списка районов
         function updateDistricts() {
             const citySelect = document.getElementById('citySelect');
             const districtSelect = document.getElementById('districtSelect');
             const selectedCity = citySelect.value;
-            
-            // Очищаем текущие районы
             districtSelect.innerHTML = '';
-
-            // Получаем список районов для выбранного города (или пустой массив)
             const districts = districtsData[selectedCity] || ['Центр'];
-
-            // Создаем новые пункты меню
             districts.forEach(district => {
                 const option = document.createElement('option');
                 option.value = district;
@@ -290,28 +280,36 @@
             }
         }
 
+        // --- ОБНОВЛЕННАЯ ФУНКЦИЯ ПОКУПКИ ---
         function buyItem(title, price) {
-            // Собираем данные: Город и Район
             const city = document.getElementById('citySelect').options[document.getElementById('citySelect').selectedIndex].text;
             const district = document.getElementById('districtSelect').value;
 
+            // 1. Сначала спрашиваем подтверждение
             tg.showPopup({
-                title: 'Оплата Web3',
+                title: 'Подтверждение',
                 message: `Купить ${title}?\n📍 ${city}, ${district}\n💰 ${price} TON`,
                 buttons: [
-                    {id: 'pay', type: 'default', text: 'Оплатить'},
+                    {id: 'pay', type: 'default', text: '✅ Оплатить'},
                     {id: 'cancel', type: 'destructive', text: 'Отмена'}
                 ]
             }, function(btnId) {
                 if (btnId === 'pay') {
-                    // Отправляем все данные боту
-                    tg.sendData(JSON.stringify({
-                        type: 'purchase',
-                        item: title,
-                        amount: price,
-                        city: city,       // Отправляем название города
-                        district: district // Отправляем район
-                    }));
+                    // 2. Если нажал "Оплатить" - Показываем инструкцию
+                    tg.showPopup({
+                        title: 'Заказ создан!',
+                        message: 'Сейчас окно закроется. Переходи в чат с ботом — чек и кошелек уже там. 👇',
+                        buttons: [{type: 'ok', text: 'Понял, жду'}]
+                    }, function() {
+                        // 3. И только когда нажал "Понял" - отправляем данные боту
+                        tg.sendData(JSON.stringify({
+                            type: 'purchase',
+                            item: title,
+                            amount: price,
+                            city: city,
+                            district: district
+                        }));
+                    });
                 }
             });
         }
@@ -342,11 +340,9 @@
             }
         }
 
-        // Запуск при старте
         renderProducts();
-        updateDistricts(); // Сразу заполнить районы для первого города
+        updateDistricts(); 
         if (tg.colorScheme === 'dark') toggleTheme();
-
     </script>
 </body>
 </html>
