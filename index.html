@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MVP.SB Store</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Переменные для светлой темы */
+            --bg-color: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-color: #1d1d1f;
+            --accent-color: #007aff;
+            --secondary-text: #86868b;
+            --border-radius: 16px;
+        }
+
+        /* Темная тема (включается через класс .dark) */
+        body.dark {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #ffffff;
+            --accent-color: #0a84ff;
+            --secondary-text: #a1a1a6;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Шапка: Лого и Настройки */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(90deg, #007aff, #b620e0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: var(--card-bg);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: var(--text-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        /* Выбор города */
+        .city-select {
+            width: 100%;
+            padding: 12px;
+            background: var(--card-bg);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: var(--border-radius);
+            color: var(--text-color);
+            margin-bottom: 20px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        /* Сетка товаров */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--accent-color);
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .card h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+        }
+
+        .card p {
+            font-size: 13px;
+            color: var(--secondary-text);
+            margin: 0 0 15px 0;
+        }
+
+        .price {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .btn-buy {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Админ панель (скрыта по умолчанию) */
+        #adminPanel {
+            display: none;
+            margin-top: 30px;
+            border-top: 2px dashed var(--secondary-text);
+            padding-top: 20px;
+        }
+        
+        .admin-title {
+            color: var(--secondary-text);
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .admin-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-sizing: border-box; /* Важно для padding */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo">MVP.SB</div>
+        <div class="controls">
+            <button class="icon-btn" onclick="toggleTheme()">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+            <button class="icon-btn" onclick="toggleAdmin()">
+                <i class="fa-solid fa-lock"></i>
+            </button>
+        </div>
+    </div>
+
+    <select class="city-select" id="citySelect">
+        <option value="msk">Москва</option>
+        <option value="spb">Санкт-Петербург</option>
+        <option value="ekb">Екатеринбург</option>
+        <option value="kzn">Казань</option>
+    </select>
+
+    <div class="grid" id="productsGrid">
+        </div>
+
+    <div id="adminPanel">
+        <div class="admin-title">Панель администратора</div>
+        <input type="text" id="newTitle" placeholder="Название товара" class="admin-input">
+        <input type="number" id="newPrice" placeholder="Цена (TON)" class="admin-input">
+        <button class="btn-buy" style="background-color: #34c759;" onclick="addProduct()">Добавить товар +</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Растянуть на весь экран
+
+        // База данных товаров (имитация)
+        let products = [
+            { id: 1, title: "Premium VPN", desc: "Доступ на 30 дней", price: 2.5, tag: "DIGITAL" },
+            { id: 2, title: "Steam Key", desc: "Random Gold", price: 5.0, tag: "GAME" },
+            { id: 3, title: "Tinder Gold", desc: "Промокод", price: 1.2, tag: "CODE" },
+            { id: 4, title: "КиноПоиск", desc: "60 дней", price: 0.5, tag: "SUB" }
+        ];
+
+        // 1. Функция отрисовки товаров
+        function renderProducts() {
+            const container = document.getElementById('productsGrid');
+            container.innerHTML = ''; // Очистить перед отрисовкой
+
+            products.forEach(product => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `
+                    <div class="card-tag">${product.tag}</div>
+                    <div>
+                        <h3>${product.title}</h3>
+                        <p>${product.desc}</p>
+                    </div>
+                    <div>
+                        <div class="price">${product.price} TON</div>
+                        <button class="btn-buy" onclick="buyItem('${product.title}', ${product.price})">
+                            Купить
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 2. Логика смены темы
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const icon = document.getElementById('themeIcon');
+            if (document.body.classList.contains('dark')) {
+                icon.className = 'fa-solid fa-sun';
+                tg.setHeaderColor('#121212'); // Красим шапку телеграма
+            } else {
+                icon.className = 'fa-solid fa-moon';
+                tg.setHeaderColor('#f5f5f7');
+            }
+        }
+
+        // 3. Логика покупки (отправка данных боту)
+        function buyItem(title, price) {
+            // В реальности тут вызывается TON Connect
+            tg.showPopup({
+                title: 'Оплата Web3',
+                message: `Вы хотите купить ${title} за ${price} TON?`,
+                buttons: [
+                    {id: 'pay', type: 'default', text: 'Оплатить через Wallet'},
+                    {id: 'cancel', type: 'destructive', text: 'Отмена'}
+                ]
+            }, function(btnId) {
+                if (btnId === 'pay') {
+                    // Отправляем данные боту, что оплата прошла
+                    tg.sendData(JSON.stringify({
+                        type: 'purchase',
+                        item: title,
+                        amount: price,
+                        city: document.getElementById('citySelect').value
+                    }));
+                }
+            });
+        }
+
+        // 4. Админ панель (простая версия)
+        function toggleAdmin() {
+            const panel = document.getElementById('adminPanel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function addProduct() {
+            const title = document.getElementById('newTitle').value;
+            const price = document.getElementById('newPrice').value;
+            
+            if(title && price) {
+                products.push({
+                    id: Date.now(),
+                    title: title,
+                    desc: "Новый товар",
+                    price: price,
+                    tag: "NEW"
+                });
+                renderProducts(); // Перерисовать магазин
+                tg.showAlert("Товар добавлен!");
+            }
+        }
+
+        // Запуск при старте
+        renderProducts();
+        
+        // Авто-определение темы Телеграма
+        if (tg.colorScheme === 'dark') {
+            toggleTheme();
+        }
+
+    </script>
+</body>
+</html>
